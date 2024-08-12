@@ -1,6 +1,8 @@
-export function hashMap() {
+export function hashSet() {
     return {
         buckets: Array(16).fill(undefined),
+        elementsLenght: 0,
+        loadFactor: 0.75,
 
         hash(key) {
             let hashCode = 0;
@@ -14,6 +16,25 @@ export function hashMap() {
             return hashCode;
         },
 
+        getloadFactor() {
+            return this.elementsLenght / this.buckets.length;
+        },
+
+        resize() {
+            const oldBuckets = this.buckets;
+            this.buckets = Array(this.buckets.length * 2).fill(undefined);
+            this.elementsLenght = 0;
+
+            for (let bucket of oldBuckets) {
+                let current = bucket;
+                while (current) {
+                    let key = Object.keys(current)[0];
+                    this.set(key, current[key]);
+                    current = current.next;
+                }
+            }
+        },
+
         set(key, value) {
             let hashCode = this.hash(key);
 
@@ -23,18 +44,33 @@ export function hashMap() {
 
             let current = this.buckets[hashCode];
 
-            while (true) {
-                if (current === undefined) {
-                    this.buckets[hashCode] = {};
-                    this.buckets[hashCode][key] = value;
-                    this.buckets[hashCode].next = undefined;
-                    return false;
-                } else if (current.key !== null) {
-                    this.buckets[hashCode][key] = value;
-                    return false;
-                } else {
+            if (current === undefined) {
+                this.buckets[hashCode] = {
+                    [key]: undefined,
+                    next: undefined,
+                };
+                this.elementsLenght++;
+            } else {
+                while (true) {
+                    if (current[key]) {
+                        current[key] = undefined;
+                        return;
+                    }
+                    if (current.next === undefined) {
+                        current.next = {
+                            [key]: undefined,
+                            next: undefined,
+                        };
+                        this.elementsLenght++;
+                        break;
+                    }
                     current = current.next;
                 }
+            }
+
+            if (this.getloadFactor() > this.loadFactor) {
+                this.resize();
+                console.log('Resized');
             }
         },
 
@@ -49,7 +85,7 @@ export function hashMap() {
 
             while (current !== undefined) {
                 if (current[key]) {
-                    return current.value;
+                    return current[key];
                 }
                 current = current.next;
             }
@@ -129,6 +165,34 @@ export function hashMap() {
                 }
             }
             return keyList;
+        },
+
+        values() {
+            let valueList = [];
+            for (let i = 0; i < this.buckets.length; i++) {
+                let current = this.buckets[i];
+                while (current !== undefined) {
+                    let values = Object.values(current);
+                    valueList.push(values[0]);
+                    current = current.next;
+                }
+            }
+            return valueList;
+        },
+
+        entries() {
+            let entries = [];
+            for (let i = 0; i < this.buckets.length; i++) {
+                let current = this.buckets[i];
+                while (current !== undefined) {
+                    let keys = Object.keys(current);
+                    let key = keys[0];
+                    let value = current[key];
+                    entries.push([key, value]);
+                    current = current.next;
+                }
+            }
+            return entries;
         },
     };
 }
